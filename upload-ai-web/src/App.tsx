@@ -121,8 +121,6 @@ export function App() {
               </span>
             </div>
 
-            <Separator />
-
             <Button type="submit" className="w-full">
               Executar
               <Wand2 className="w-4 h-4 ml-2" />
