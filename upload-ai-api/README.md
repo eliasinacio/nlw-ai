@@ -2,6 +2,7 @@
 
 - Node + Typescript
 - Prisma
+- Fastify
 
 Install prisma:
 `npm i prisma -D`

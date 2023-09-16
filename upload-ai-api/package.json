@@ -9,6 +9,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
+    "@fastify/multipart": "^7.7.3",
     "@prisma/client": "^5.3.1",
     "buffer-from": "^1.1.2",
     "esbuild": "^0.18.20",
