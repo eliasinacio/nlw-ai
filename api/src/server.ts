@@ -3,12 +3,12 @@ import { getAllPromptsRoute, uploadVideoRoute } from './routes'
 
 const app = fastify()
 
-app.register(getAllPromptsRoute)
-app.register(uploadVideoRoute)
-
 app.get('/test', () => {
     return 'Hello world'
 })
+
+app.register(getAllPromptsRoute)
+app.register(uploadVideoRoute)
 
 app.listen({
     port: 4444,

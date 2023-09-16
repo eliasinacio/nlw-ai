@@ -38,7 +38,7 @@ export async function uploadVideoRoute (app: FastifyInstance) {
 
         const extension = path.extname(data.filename)
 
-        if (extension != '.mp3') {
+        if (extension !== '.mp3') {
             return res.status(400).send({ error: 'Invalid input type.'})
         }
 
@@ -47,5 +47,7 @@ export async function uploadVideoRoute (app: FastifyInstance) {
         const uploadDestination = path.resolve(__dirname, '../../temp/', fileUploadName)
 
         await pump(data.file, fs.createWriteStream(uploadDestination))
+
+        return res.send()
     })
 }
