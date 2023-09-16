@@ -1,7 +1,15 @@
 import { fastify } from 'fastify'
-import { getAllPromptsRoute, uploadVideoRoute } from './routes'
+import { fastifyCors } from '@fastify/cors'
+import { getAllPromptsRoute } from './routes/prompts'
+import { uploadVideoRoute } from './routes/video'
+import { createTranscriptionRoute } from './routes/transcription'
+import { generateAICompletion } from './routes/ai-completion'
 
 const app = fastify()
+
+app.register(fastifyCors, {
+    origin: '*',
+})
 
 app.get('/test', () => {
     return 'Hello world'
@@ -9,6 +17,8 @@ app.get('/test', () => {
 
 app.register(getAllPromptsRoute)
 app.register(uploadVideoRoute)
+app.register(createTranscriptionRoute)
+app.register(generateAICompletion)
 
 app.listen({
     port: 4444,

@@ -8,18 +8,6 @@ import { randomUUID } from 'node:crypto';
 import { pipeline } from 'node:stream';
 import { promisify } from 'node:util';
 
-/* Prompts */
-
-export async function getAllPromptsRoute (app: FastifyInstance) {
-    app.get('/prompts', async () => {
-        const prompts = await prisma.prompt.findMany();
-
-        return prompts;
-    })
-}
-
-/* Videos */
-
 const pump = promisify(pipeline)
 
 export async function uploadVideoRoute (app: FastifyInstance) {
@@ -39,15 +27,22 @@ export async function uploadVideoRoute (app: FastifyInstance) {
         const extension = path.extname(data.filename)
 
         if (extension !== '.mp3') {
-            return res.status(400).send({ error: 'Invalid input type.'})
+            return res.status(400).send({ error: 'Invalid input type.', extension})
         }
 
         const fileBaseName = path.basename(data.filename, extension)  // Get file name without extension
-        const fileUploadName = `${fileBaseName}-${randomUUID}${extension}`
-        const uploadDestination = path.resolve(__dirname, '../../temp/', fileUploadName)
+        const fileUploadName = `${fileBaseName}-${randomUUID()}${extension}`
+        const uploadDestination = path.resolve(__dirname, '../../tmp', fileUploadName)
 
         await pump(data.file, fs.createWriteStream(uploadDestination))
 
-        return res.send()
+        const video = await prisma.video.create({
+            data: {
+                name: data.filename,
+                path: uploadDestination,
+            }
+        })
+
+        return { video }
     })
 }
