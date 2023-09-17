@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Github, Wand2 } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Separator } from './components/ui/separator';
@@ -6,8 +7,31 @@ import { Label } from './components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
 import { Slider } from './components/ui/slider';
 import { VideoForm } from './components/video-form';
+import { PromptSelect } from './components/prompt-select';
+import { useCompletion } from 'ai/react';
 
 export function App() {
+  const [temperature, setTemperature] = useState(0.5)
+  const [videoId, setVideoId] = useState<string | null>(null)
+
+  const {
+    input,
+    setInput,
+    handleInputChange,
+    handleSubmit,
+    completion,
+    isLoading
+  } = useCompletion({
+    api: 'http://localhost:4444/ai/completion',
+    headers: {
+      'Content-type': 'application/json'
+    },
+    body: {
+      videoId,
+      temperature
+    }
+  })
+
   return (
     <div className="min-h-screen flex flex-col">
       <div className="px-6 py-3 flex items-center justify-between border-b">
@@ -32,10 +56,16 @@ export function App() {
           <div className="grid grid-rows-2 gap-4 flex-1">
             <Textarea
               className="resize-none p-4 leading-relaxed"
-              placeholder="Informe o prompt para a IA..." />
+              placeholder="Informe o prompt para a IA..."
+              value={input}
+              onChange={handleInputChange}
+            />
             <Textarea
               className="resize-none p-4 leading-relaxed"
-              placeholder="Resultado gerado pela IA..." readOnly />
+              placeholder="Resultado gerado pela IA..."
+              readOnly
+              value={completion}
+            />
           </div>
           <p className="text-sm">
             Lembre-se: você pode utilizar a variável <code className="text-primary">{'{transcription}'}</code> no seu prompt para adicionar o conteúdo da transcrição do vídeo selecionado.
@@ -43,23 +73,14 @@ export function App() {
         </div>
 
         <aside className="w-80 space-y-6">
-          <VideoForm />
+          <VideoForm onVideoUploaded={setVideoId} />
 
           <Separator />
 
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label>Prompt</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um prompt"/>
-                </SelectTrigger>
-
-                <SelectContent>
-                  <SelectItem value="title">Título do YouTube</SelectItem>
-                  <SelectItem value="description">Descrição do YouTube</SelectItem>
-                </SelectContent>
-              </Select>
+              <PromptSelect onPromptSelected={setInput} />
 
               <span className="block text-xs text-muted-foreground italic">
                 Você poderá customizar essa opção em breve.
@@ -89,6 +110,8 @@ export function App() {
                 min={0}
                 max={1}
                 step={0.1}
+                value={[temperature]}
+                onValueChange={value => { setTemperature(value[0]) }}
               />
 
               <span className="block text-xs text-muted-foreground italic">
@@ -96,7 +119,7 @@ export function App() {
               </span>
             </div>
 
-            <Button type="submit" className="w-full">
+            <Button disabled={isLoading} type="submit" className="w-full">
               Executar
               <Wand2 className="w-4 h-4 ml-2" />
             </Button>
