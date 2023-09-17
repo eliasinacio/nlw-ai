@@ -13,7 +13,7 @@ const pump = promisify(pipeline)
 export async function uploadVideoRoute (app: FastifyInstance) {
     app.register(fastifyMultipart, {
         limits: {
-            fileSize: 1_848_576 * 100 // 100mb
+            fileSize: 1_848_576 * 25 // 25mb
         }
     })
 
