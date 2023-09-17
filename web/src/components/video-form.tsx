@@ -4,12 +4,29 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { Button } from './ui/button';
 import { ChangeEvent, FormEvent, useMemo, useRef, useState } from 'react';
+import { getFFmpeg } from '@/lib/ffmpeg';
+import { fetchFile } from '@ffmpeg/util';
+import { api } from '@/lib/axios';
 
-export function VideoForm() {
+type Status = 'waiting' | 'converting' | 'uploading' | 'generating' | 'success'
+
+const statusMessages = {
+  converting: 'Convertendo',
+  uploading: 'Carregando',
+  generating: 'Transcrevendo',
+  success: 'Sucesso',
+}
+
+interface VideoFormProps {
+  onVideoUploaded: (id: string) => void
+}
+
+export function VideoForm ({ onVideoUploaded }: VideoFormProps) {
   const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [status, setStatus] = useState<Status>('waiting')
   const promptInputRef = useRef<HTMLTextAreaElement>(null)
 
-  function handleChangeFile (event: ChangeEvent<HTMLInputElement>) {
+  function handleChangeFile(event: ChangeEvent<HTMLInputElement>) {
     const { files } = event.currentTarget
 
     if (!files) {
@@ -19,7 +36,36 @@ export function VideoForm() {
     setVideoFile(files[0])
   }
 
-  function handleUploadVideo (event: FormEvent<HTMLFormElement>) {
+  async function convertVideoToAudio(video: File) {
+    const ffmpeg = await getFFmpeg()
+
+    await ffmpeg.writeFile('input.mp4', await fetchFile(video))
+
+    ffmpeg.on('progress', progress => {
+      console.log('Convert progress: ' + Math.round(progress.progress * 100))
+    })
+
+    await ffmpeg.exec([
+      '-i',
+      'input.mp4',
+      '-map',
+      '0:a',
+      '-b:a',
+      '20k',
+      '-acodec',
+      'libmp3lame',
+      'output.mp3'
+    ])
+
+    const data = await ffmpeg.readFile('output.mp3')
+
+    const audioFileBlob = new Blob([data], { type: 'audio/mpeg' })
+    const audioFile = new File([audioFileBlob], 'audio.mp3', { type: 'audio/mpeg' })
+
+    return audioFile
+  }
+
+  async function handleUploadVideo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const prompt = promptInputRef.current?.value
@@ -28,7 +74,31 @@ export function VideoForm() {
       return
     }
 
-     
+    setStatus('converting')
+
+    const audioFile = await convertVideoToAudio(videoFile)
+
+    const data = new FormData()
+
+    data.append('file', audioFile)
+
+    setStatus('uploading')
+
+    const response = await api.post('/videos', data)
+
+    const videoId = response.data.video.id
+
+    const body = {
+      prompt
+    }
+
+    setStatus('generating')
+
+    await api.post(`/videos/${videoId}/transcription`, body)
+
+    onVideoUploaded(videoId)
+    
+    setStatus('success')
   }
 
   // useMemo: Even if the state or component changes, this item will only change if the dependencies change
@@ -41,7 +111,7 @@ export function VideoForm() {
   }, [videoFile])
 
   return (
-    <form className="space-y-6">
+    <form onSubmit={handleUploadVideo} className="space-y-6">
       <label
         htmlFor="video"
         className="flex relative border rounded-md aspect-video cursor-pointer border-dashed text-sm flex-col items-center justify-center text-muted-foreground hover:bg-gray-400/10"
@@ -63,15 +133,26 @@ export function VideoForm() {
       <div className="space-y-2">
         <Label htmlFor="transcription-prompt">Prompt de transcrição</Label>
         <Textarea
+          ref={promptInputRef}
+          disabled={status !== 'waiting'}
           id="transcription-prompt"
           className="h-20 leading-relaxed resize-none"
           placeholder="Informe palavras chave do vídeo separadas por vírgula (,)."
         />
       </div>
 
-      <Button type="submit" className="w-full">
-        Carregar vídeo
-        <Upload className="w-4 h-4 ml-2" />
+      <Button
+        disabled={status !== 'waiting'}
+        data-success={status === 'success'}
+        type="submit"
+        className="w-full data-[success=true]:bg-emerald-400"
+      >
+        {status === 'waiting' ? (
+          <>
+            Carregar vídeo
+            <Upload className="w-4 h-4 ml-2" />
+          </>
+        ) : statusMessages[status]}
       </Button>
     </form>
   )
