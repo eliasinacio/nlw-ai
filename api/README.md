@@ -1,9 +1,3 @@
-## Upload.ai - API
-
-- Node + Typescript
-- Prisma
-- Fastify
-
 Install prisma:
 `npm i prisma -D`
 
@@ -15,3 +9,7 @@ After create the schema, migrate with:
 
 to view tables
 `npx prisma studio`
+
+To run first time, seed:
+`npx run seed` or
+`npx prisma db seed`
